@@ -1,0 +1,81 @@
+2 NUMA NODES 48 LOGICAL CORES
+
+---------- i) use all logical cores of each numa node -----------------------------------------------------------------------------------------------
+@echo off
+REM === Solution 1 : share entire node ===
+
+:: Apps 1 & 2 on NUMA node 0 (cores 0‑23)
+cmd /C "set DOTNET_GCHeapAffinitizeMask=00FFFFFF && start ""App1"" /NODE 0 /AFFINITY 0x00FFFFFF .\ConsoleApp.exe"
+cmd /C "set DOTNET_GCHeapAffinitizeMask=00FFFFFF && start ""App2"" /NODE 0 /AFFINITY 0x00FFFFFF .\ConsoleApp.exe"
+
+:: Apps 3 & 4 on NUMA node 1 (cores 24‑47)
+cmd /C "set DOTNET_GCHeapAffinitizeMask=FFFFFF000000 && start ""App3"" /NODE 1 /AFFINITY 0xFFFFFF000000 .\ConsoleApp.exe"
+cmd /C "set DOTNET_GCHeapAffinitizeMask=FFFFFF000000 && start ""App4"" /NODE 1 /AFFINITY 0xFFFFFF000000 .\ConsoleApp.exe"
+
+
+---------- ii) EXCLUSIVE 12 CORE SLICES PER APP -----------------------------------------------------------------------------------------------
+
+Instance	NUMA node	Cores				Affinity mask	GC mask
+App 1	0	 0‑11	    0x00000000000FFF	00000000000FFF
+App 2	0	 12‑23	    0x000000000FF000	000000000FF000
+App 3	1	 24‑35	    0x000000FF000000	000000FF000000
+App 4	1	 36‑47	    0x0000FF00000000	0000FF00000000
+
+
+@echo off
+REM === Solution 2 : exclusive 12‑core slices per app ===
+
+:: ---------- NUMA node 0 ----------
+cmd /C "set DOTNET_GCHeapAffinitizeMask=00000000000FFF && start ""App1"" /NODE 0 /AFFINITY 0x00000000000FFF .\ConsoleApp.exe"
+cmd /C "set DOTNET_GCHeapAffinitizeMask=000000000FF000 && start ""App2"" /NODE 0 /AFFINITY 0x000000000FF000 .\ConsoleApp.exe"
+
+:: ---------- NUMA node 1 ----------
+cmd /C "set DOTNET_GCHeapAffinitizeMask=000000FF000000 && start ""App3"" /NODE 1 /AFFINITY 0x000000FF000000 .\ConsoleApp.exe"
+cmd /C "set DOTNET_GCHeapAffinitizeMask=0000FF00000000 && start ""App4"" /NODE 1 /AFFINITY 0x0000FF00000000 .\ConsoleApp.exe"
+
+
+
+------------iii) private slices, some cores reserved for OS---------------------------------------------------------------------------------------------
+
+App	    NUMA Node	Cores Used		Free Cores	Affinity Mask
+App1	0		    0–10			11, 23		0x000000000007FF
+App2	0		    12–22			11, 23		0x000000007FF000
+App3	1		    24–34			35, 47		0x000007FF000000
+App4	1		    36–46			35, 47		0x07FF0000000000
+
+
+
+@echo off
+REM === Solution 3: private slices, some cores reserved for OS ===
+
+:: App1 — cores 0–10 (reserve core 11, 23)
+cmd /C "set DOTNET_GCHeapAffinitizeMask=000000000007FF && start ""App1"" /NODE 0 /AFFINITY 0x000000000007FF .\ConsoleApp.exe"
+
+:: App2 — cores 12–22 (reserve core 11, 23)
+cmd /C "set DOTNET_GCHeapAffinitizeMask=000000007FF000 && start ""App2"" /NODE 0 /AFFINITY 0x000000007FF000 .\ConsoleApp.exe"
+
+:: App3 — cores 24–34 (reserve core 35, 47)
+cmd /C "set DOTNET_GCHeapAffinitizeMask=000007FF000000 && start ""App3"" /NODE 1 /AFFINITY 0x000007FF000000 .\ConsoleApp.exe"
+
+:: App4 — cores 36–46 (reserve core 35, 47)
+cmd /C "set DOTNET_GCHeapAffinitizeMask=07FF0000000000 && start ""App4"" /NODE 1 /AFFINITY 0x07FF0000000000 .\ConsoleApp.exe"
+
+
+------------------ iv) Si tu veux encore moins de Heaps, utilise 'DOTNET_GCHeapCount'-----------------------------------------------------
+
+@echo off
+REM === Solution 2: exclusive 12-core slices per app ===
+REM     + explicit GC heap count
+
+:: ---------- NUMA node 0 ----------
+
+cmd /C "set DOTNET_GCHeapAffinitizeMask=00000000000FFF && set DOTNET_GCHeapCount=3 && start ""App1"" /NODE 0 /AFFINITY 0x00000000000FFF .\ConsoleApp.exe"
+cmd /C "set DOTNET_GCHeapAffinitizeMask=000000000FF000 && set DOTNET_GCHeapCount=3 && start ""App2"" /NODE 0 /AFFINITY 0x000000000FF000 .\ConsoleApp.exe"
+
+:: ---------- NUMA node 1 ----------
+
+cmd /C "set DOTNET_GCHeapAffinitizeMask=000000FF000000 && set DOTNET_GCHeapCount=3 && start ""App3"" /NODE 1 /AFFINITY 0x000000FF000000 .\ConsoleApp.exe"
+cmd /C "set DOTNET_GCHeapAffinitizeMask=0000FF00000000 && set DOTNET_GCHeapCount=3 && start ""App4"" /NODE 1 /AFFINITY 0x0000FF00000000 .\ConsoleApp.exe"
+
+
+
