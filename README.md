@@ -2,6 +2,10 @@
 # Doc
 https://learn.microsoft.com/en-us/dotnet/core/runtime-config/garbage-collector
 
+https://github.com/jongio/docs-1/blob/master/docs/core/run-time-config/garbage-collector.md
+
+https://devblogs.microsoft.com/dotnet/making-cpu-configuration-better-for-gc-on-machines-with-64-cpus/
+
 
 # Nb of heaps control & gcMode=Server
 
