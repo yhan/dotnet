@@ -1,0 +1,66 @@
+lagecy
+net8 workstation
+net8 server aucune tunning
+net8 server numa node binding
+net8 server numa node binding + gc numa node binding     pour tous les deux 24, 24
+net8 server numa node binding + gc numa node sliced binding, 
+ * NOVA thread tjs 24 (2 NOVAs), 24(2 NOVAs); 
+ * gc thread par NOVA instance 12 (1 NOVA) , 12(1 NOVA) | 12(1 NOVA), 12(1 NOVA) ( je prends 1/2 de chaque NUMA node )
+ 
+ net8 server numa node binding + gc numa node sliced binding, 
+ * NOVA thread tjs 24, 24; 
+ * gc thread par NOVA instance 6 (1 NOVA) , 6(1 NOVA) | 6(1 NOVA), 6(1 NOVA)  ( je prends 1/4 de chaque NUMA node )
+           + heapCount: 6(1 NOVA), 6(1 NOVA) | 6(1 NOVA), 6(1 NOVA)
+		   
+		   
+		   
+CPU binding: utliser MASK: 
+             CMD /C start /NODE 0|1 /AFFINITY <hex mask> ./TEST.NOVAx.exe
+			 
+			 
+MASK
+24, 24        0-23; 24-47
+12,12,12,12   0-11; 12-23; 24-35; 36-47
+6,6,6,6	      0-5;  12-17; 24-29; 36-41
+
+
+
+Set	  Core range(s)	  Bits set	Mask (hex ‑ 64 bit)
+----  --------------  ---------------------------------------
+1‑A	  0 ‑ 23	          24 bits	0x0000000000FFFFFF
+1‑B	  24 ‑ 47	          24 bits	0x0000FFFFFF000000
+	  				  		    
+2‑A	  0 ‑ 11	          12 bits	0x0000000000000FFF
+2‑B	  12 ‑ 23	          12 bits	0x0000000000FFF000
+2‑C	  24 ‑ 35	          12 bits	0x0000000FFF000000
+2‑D	  36 ‑ 47	          12 bits	0x0000FFF000000000
+	  				  		    
+3‑A	  0 ‑ 5	          6 bits	    0x000000000000003F
+3‑B	  12 ‑ 17	          6 bits	    0x000000000003F000
+3‑C	  24 ‑ 29	          6 bits	    0x000000003F000000
+3‑D	  36 ‑ 41	          6 bits	    0x00003F0000000000
+
+
+
+start /AFFINITY 0x0000FFFFFF000000 YourApp.exe
+
+
+(Get-Process -Name "ConsoleApp1").ProcessorAffinity
+"{0:X}" -f (Get-Process -Name "ConsoleApp1").ProcessorAffinity
+
+Check
+
+PS C:\Users\hanyi> "{0:X}" -f (Get-Process -Name "ConsoleApp1").ProcessorAffinity
+65535
+PS C:\Users\hanyi> "{0:X}" -f 65535
+FFFF
+
+
+
+```Powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+# Set ProcessorAffinity to logical cores 7 through 15
+$p = Start-Process ".\ConsoleApp1.exe" -PassThru
+$p.ProcessorAffinity = 0x000000000000FF00
+```
