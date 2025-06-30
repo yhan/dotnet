@@ -46,7 +46,7 @@ https://devblogs.microsoft.com/dotnet/making-cpu-configuration-better-for-gc-on-
 
 ```
 
-// bind to 4 first cores 1111 1111
+// bind to 4 first cores 0000 1111
 start "console" /NODE 0 /AFFINITY F .\ConsoleApp1.exe
 
 // start with windbg simple
