@@ -1,0 +1,75 @@
+function Start-GCApp {
+    param (
+        [string]$AppName,
+        [string]$AffinityMaskHex,
+        [int]$NumaNode,
+        [string]$ExePath,
+        [int]$HeapCount
+    )
+
+    $envVars = @{
+        "DOTNET_GCHeapAffinitizeMask" = $AffinityMaskHex
+        "DOTNET_GCHeapCount" = "$HeapCount"
+    }
+
+    # Start the process suspended, so we can set affinity before it runs
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $ExePath
+    $startInfo.EnvironmentVariables["DOTNET_GCHeapAffinitizeMask"] = $AffinityMaskHex
+    $startInfo.EnvironmentVariables["DOTNET_GCHeapCount"] = "$HeapCount"
+    $startInfo.UseShellExecute = $false
+    $startInfo.Arguments = ""
+
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+
+    # Set processor affinity
+    $process.ProcessorAffinity = [IntPtr]::new([Convert]::ToInt64($AffinityMaskHex, 16))
+
+    Write-Host "Started $AppName with PID $($process.Id), affinity=$AffinityMaskHex, NUMA node=$NumaNode"
+}
+
+# ---------- NUMA Node 0 ----------
+Start-GCApp -AppName "App1" -AffinityMaskHex "00000000000FFF" -NumaNode 0 -ExePath ".\ConsoleApp.exe" -HeapCount 3
+Start-GCApp -AppName "App2" -AffinityMaskHex "000000000FF000" -NumaNode 0 -ExePath ".\ConsoleApp.exe" -HeapCount 3
+
+# ---------- NUMA Node 1 ----------
+Start-GCApp -AppName "App3" -AffinityMaskHex "000000FF000000" -NumaNode 1 -ExePath ".\ConsoleApp.exe" -HeapCount 3
+Start-GCApp -AppName "App4" -AffinityMaskHex "0000FF00000000" -NumaNode 1 -ExePath ".\ConsoleApp.exe" -HeapCount 3
+
+Group
+Cores
+Bits
+Hex Mask
+3‑A
+0–5
+6 bits
+0x000000000000003F
+3‑A′
+6–11
+6 bits
+0x0000000000000FC0
+3‑B
+12–17
+6 bits
+0x000000000003F000
+3‑B′
+18–23
+6 bits
+0x0000000000FC0000
+3‑C
+24–29
+6 bits
+0x000000003F000000
+3‑C′
+30–35
+6 bits
+0x000000FC00000000
+3‑D
+36–41
+6 bits
+0x00003F0000000000
+3‑D′
+42–47
+6 bits
+0x00FC000000000000
+
